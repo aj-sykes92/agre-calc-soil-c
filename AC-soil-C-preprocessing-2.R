@@ -63,13 +63,24 @@ Dat_main <- Dat_main %>%
               select(wrb_name_short, resting_C),
             by = "wrb_name_short")
 
+# add in actual postcode values
+library(RSQLite)
+# we need the original .gpkg data, but no need to actually read in the polygons
+postcode_data <- tbl(src_sqlite(find_onedrive(dir = bigdata_repo, path = "UK postcodes/postcode_polygons.gpkg")), "postcode_district") %>%
+  as_tibble() %>%
+  rename(index = cat, postcode = pc_district) %>%
+  select(-fid, -geom)
+
+Dat_main <- left_join(Dat_main, postcode_data, by = "index")
+
 # we could work out cell areas if we were being super anal. I think given the size of the cells/postcode areas it's not
 # really necessary.
 
 # calculate average soil C stocks in tonnes per ha for each postcode
 Dat_out <- Dat_main %>%
-  group_by(index) %>%
-  summarise(resting_C = mean(resting_C, na.rm = T))
+  group_by(postcode) %>%
+  summarise(resting_C_mean = mean(resting_C, na.rm = T),
+            resting_C_sd = sd(resting_C, na.rm = T))
 
 # make some plots and write out files
 ggplot(Dat_out, aes(x = resting_C)) +
@@ -86,4 +97,4 @@ write_csv(Dat_out, find_onedrive(dir = projdata_repo, path = "Data preprocessing
 
 resting_C_raster <- rasterFromXYZ(Dat_main %>% select(x, y, resting_C))
 plot(resting_C_raster)
-writeRaster(resting_C_raster, find_onedrive(dir = bigdata_repo, path = "SoilGrids250/UK resting soil C stocks.tif"))
+writeRaster(resting_C_raster, find_onedrive(dir = bigdata_repo, path = "SoilGrids250/UK resting soil C stocks.tif"), overwrite = T)
