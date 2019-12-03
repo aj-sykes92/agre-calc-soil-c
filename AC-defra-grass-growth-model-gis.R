@@ -149,3 +149,12 @@ Dat_summ <- Dat_main %>%
 Dat_summ$GGC %>% qplot() # solid trimodal distribution right there
 
 write_csv(Dat_summ, find_onedrive(dir = projdata_repo, path = "RB209 grass growth class by postcode.csv"))
+
+# join up to existing soil C x postcode data and write out as one file
+SoilC <- read_csv(find_onedrive(dir = "AgRE Calc PLC/Soil C methodology/Model update/Data preprocessing",
+                                path = "Soil C stocks by postcode index.csv"))
+
+Both <- full_join(SoilC %>% rename(Postcode = postcode), Dat_summ, by = "Postcode")
+
+write_csv(Both, find_onedrive(dir = "AgRE Calc PLC/Soil C methodology/Model update/Data preprocessing",
+                              path = "Postcode soil C and GGC joined.csv"))
